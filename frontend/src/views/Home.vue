@@ -165,14 +165,16 @@ async function create() {
     <h3 style="margin-top:30px">Uhrzeit</h3>
 
     <table>
-      <tr>
-        <td>Nicht vor:</td>
-        <td>Nicht nach:</td>
-      </tr>
-      <tr>
-        <td><input type="time" v-model="timeFrom" /></td>
-        <td><input type="time" v-model="timeTo" /></td>
-      </tr>
+      <tbody>
+        <tr>
+          <td>Nicht vor:</td>
+          <td>Nicht nach:</td>
+        </tr>
+        <tr>
+          <td><input type="time" v-model="timeFrom" /></td>
+          <td><input type="time" v-model="timeTo" /></td>
+        </tr>
+      </tbody>
     </table>
 
     <br />
