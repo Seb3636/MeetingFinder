@@ -11,9 +11,14 @@ const eventId = route.params.id;   // ✅ einzig richtige Quelle
 const event = ref(null);
 const error = ref(null);
 
-function copyLink() {
-  navigator.clipboard.writeText(window.location.href);
-  alert("Link kopiert");
+async function copyLink() {
+  try {
+    await navigator.clipboard.writeText(window.location.href);
+    alert("Link kopiert");
+  } catch (e) {
+    console.error("Clipboard blocked", e);
+    alert("Kopieren nicht erlaubt");
+  }
 }
 
 onMounted(async () => {
