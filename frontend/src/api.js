@@ -1,4 +1,6 @@
-const API_BASE = "http://localhost:3000/api";
+const API_BASE = "https://meetingfinder.de/api";
+
+console.log("WS BASE =", import.meta.env.VITE_WS_BASE);
 
 /* =====================================================
    EVENT
@@ -53,7 +55,7 @@ export async function getAggregate(id) {
    LIVE UPDATES (WebSocket)
    ===================================================== */
 export function connectLiveUpdates(eventId, onUpdate) {
-  const ws = new WebSocket(`ws://localhost:3000`);
+  const ws = new WebSocket(VITE_WS_BASE);
 
   ws.onmessage = (e) => {
     try {

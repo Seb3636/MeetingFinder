@@ -5,62 +5,101 @@ import { createEvent } from "../api";
 
 const router = useRouter();
 
+/* ======================================================
+   State
+====================================================== */
 const title = ref("");
 const selectedDates = ref(new Set());
-const timeFrom = ref("09:00");
-const timeTo = ref("17:00");
+const timeFrom = ref("17:00");
+const timeTo = ref("19:00");
 
 let dragging = false;
 
-/* ======================================================
-   Kalender-Logik (Monat fix, erweiterbar)
-   ====================================================== */
-const year = 2026;
-const month = 0; // Januar (0-basiert)
-
 const weekdayLabels = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+function localTodayIso() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d.toISOString().slice(0, 10);
+}
 
-const daysInMonth = computed(() => {
+const todayIso = localTodayIso();
+
+/* ======================================================
+   Monate (dynamisch erweiterbar)
+====================================================== */
+const months = ref([]);
+
+function addMonth() {
+  if (months.value.length === 0) {
+    const now = new Date();
+    months.value.push({
+      year: now.getFullYear(),
+      month: now.getMonth()
+    });
+    return;
+  }
+
+  const last = months.value[months.value.length - 1];
+  const next = new Date(last.year, last.month + 1, 1);
+
+  months.value.push({
+    year: next.getFullYear(),
+    month: next.getMonth()
+  });
+}
+
+// Initial: aktueller Monat
+addMonth();
+
+/* ======================================================
+   Kalenderberechnung
+====================================================== */
+function buildMonthDays(year, month) {
   const first = new Date(year, month, 1);
   const last = new Date(year, month + 1, 0);
 
   const days = [];
+  const startOffset = (first.getDay() + 6) % 7;
 
-  // Leere Felder vor Monatsstart (Mo = 0)
-  let startOffset = (first.getDay() + 6) % 7;
   for (let i = 0; i < startOffset; i++) {
     days.push(null);
   }
 
   for (let d = 1; d <= last.getDate(); d++) {
     const date = new Date(year, month, d);
+    const iso = date.toISOString().slice(0, 10);
+
     days.push({
-      iso: date.toISOString().slice(0, 10),
+      iso,
       day: d,
-      weekday: (date.getDay() + 6) % 7 // Mo=0
+      weekday: (date.getDay() + 6) % 7,
+      past: iso < todayIso
     });
   }
 
   return days;
-});
+}
 
 /* ======================================================
    Auswahl
-   ====================================================== */
-function toggleDate(iso) {
-  selectedDates.value.has(iso)
-    ? selectedDates.value.delete(iso)
-    : selectedDates.value.add(iso);
+====================================================== */
+function toggleDate(d) {
+  if (!d || d.past) return;
+
+  selectedDates.value.has(d.iso)
+    ? selectedDates.value.delete(d.iso)
+    : selectedDates.value.add(d.iso);
 }
 
-function startDrag(iso) {
+function startDrag(d) {
+  if (!d || d.past) return;
   dragging = true;
-  toggleDate(iso);
+  toggleDate(d);
 }
 
-function dragOver(iso) {
-  if (dragging && iso) {
-    selectedDates.value.add(iso);
+function dragOver(d) {
+  if (dragging && d && !d.past) {
+    selectedDates.value.add(d.iso);
   }
 }
 
@@ -70,7 +109,7 @@ function stopDrag() {
 
 /* ======================================================
    Event erstellen
-   ====================================================== */
+====================================================== */
 async function create() {
   if (!title.value || selectedDates.value.size === 0) {
     alert("Titel und mindestens ein Datum auswählen");
@@ -99,13 +138,7 @@ async function create() {
     <img
       src="/MeetingFinder_Banner.png"
       alt="MeetingFinder"
-      style="
-        width:100%;
-        max-height:220px;
-        object-fit:cover;
-        border-radius:8px;
-        margin-bottom:30px;
-      "
+      style="width:100%;max-height:220px;object-fit:cover;border-radius:8px;margin-bottom:30px"
     />
 
     <p style="color:#555;margin-bottom:20px">
@@ -122,47 +155,53 @@ async function create() {
 
     <!-- Wochentage -->
     <div
-      style="
-        display:grid;
-        grid-template-columns:repeat(7,44px);
-        gap:6px;
-        margin-bottom:6px;
-        font-weight:bold;
-        text-align:center;
-      "
+      style="display:grid;grid-template-columns:repeat(7,44px);gap:6px;margin-bottom:6px;font-weight:bold;text-align:center"
     >
-      <div v-for="w in weekdayLabels" :key="w">
-        {{ w }}
-      </div>
+      <div v-for="w in weekdayLabels" :key="w">{{ w }}</div>
     </div>
 
-    <!-- Kalender -->
+    <!-- Monate -->
     <div
-      @mouseup="stopDrag"
-      @mouseleave="stopDrag"
-      style="
-        display:grid;
-        grid-template-columns:repeat(7,44px);
-        gap:6px;
-      "
+      v-for="(m, idx) in months"
+      :key="idx"
+      style="margin-bottom:18px"
     >
+      <div style="font-weight:bold;margin:6px 0">
+        {{ new Date(m.year, m.month).toLocaleString("de-DE", { month: "long", year: "numeric" }) }}
+      </div>
+
       <div
-        v-for="(d, idx) in daysInMonth"
-        :key="idx"
-        :class="[
-          'day-cell',
-          d && selectedDates.has(d.iso) ? 'selected' : '',
-          d && d.weekday >= 5 ? 'weekend' : '',
-          !d ? 'empty' : ''
-        ]"
-        @mousedown="d && startDrag(d.iso)"
-        @mouseover="d && dragOver(d.iso)"
+        @mouseup="stopDrag"
+        @mouseleave="stopDrag"
+        style="display:grid;grid-template-columns:repeat(7,44px);gap:6px"
       >
-        {{ d ? String(d.day).padStart(2, "0") : "" }}
+        <div
+          v-for="(d, i) in buildMonthDays(m.year, m.month)"
+          :key="i"
+          class="day-cell"
+          :class="{
+            selected: d && selectedDates.has(d.iso),
+            weekend: d && d.weekday >= 5,
+            past: d && d.past,
+            empty: !d
+          }"
+          @mousedown="startDrag(d)"
+          @mouseover="dragOver(d)"
+        >
+          {{ d ? String(d.day).padStart(2, "0") : "" }}
+        </div>
       </div>
     </div>
 
-    <h3 style="margin-top:30px">Uhrzeit</h3>
+    <!-- Weiterer Monat -->
+    <button
+      @click="addMonth"
+      style="margin-bottom:30px;padding:6px 12px;cursor:pointer"
+    >
+      + weiterer Monat
+    </button>
+
+    <h3>Uhrzeit</h3>
 
     <table>
       <tbody>
@@ -202,6 +241,12 @@ async function create() {
 
 .day-cell.selected {
   background: #8f8;
+}
+
+.day-cell.past {
+  background: #ddd;
+  color: #aaa;
+  cursor: not-allowed;
 }
 
 .day-cell.empty {

@@ -4,6 +4,14 @@ import vue from "@vitejs/plugin-vue";
 export default defineConfig({
   plugins: [vue()],
   server: {
-    port: 5173
+    host: true,
+    port: 5173,
+    hmr: {
+      protocol: "wss",
+      host: "meetingfinder.de",
+      port: 5173
+    }
   }
 });
+
+
