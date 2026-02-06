@@ -1,0 +1,56 @@
+# =========================
+# Allgemein
+# =========================
+.git
+.gitignore
+README.md
+*.log
+
+# =========================
+# Node / npm
+# =========================
+**/node_modules
+**/npm-debug.log
+**/yarn-error.log
+**/pnpm-lock.yaml
+
+# =========================
+# Vite / Build-Artefakte
+# =========================
+**/dist
+**/.vite
+**/.cache
+
+# =========================
+# Environment / Secrets
+# =========================
+.env
+.env.*
+!.env.example
+
+# =========================
+# Editor / OS
+# =========================
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+
+# =========================
+# Tests / Coverage
+# =========================
+**/coverage
+**/*.spec.*
+**/*.test.*
+
+# =========================
+# SQLite / Runtime-Daten
+# =========================
+**/*.sqlite
+**/*.sqlite3
+**/*.db
+
+# =========================
+# Docker
+# =========================
+docker-compose.override.yml
